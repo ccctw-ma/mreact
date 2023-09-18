@@ -5,11 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Document</title>
   </head>
-  <body></body>
+  <body>
+    <div id="root"></div>
+  </body>
 
   <script src="../dist/bundle.js"></script>
 
   <script>
-    console.log(MReact);
+    const container = document.getElementById("root");
+    MReact.render(
+      MReact.createElement(
+        "div",
+        { style: "width: 100px; height: 100px" },
+        "233",
+        233,
+        MReact.createElement("div", null, 2)
+      ),
+      container
+    );
   </script>
 </html>

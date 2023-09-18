@@ -1,12 +1,13 @@
-import { Children, ElementType, HTMLTags, VDOM } from "./types";
+import { ElementType, HTMLTags, VDOM } from "./types";
 
 export function createElement(
-  type: HTMLTags,
+  tag: HTMLTags,
   props: Object | null,
-  ...children: Children
+  ...children: Array<VDOM | number | string>
 ): VDOM {
   return {
-    type,
+    type: ElementType.ELEMENT,
+    tag,
     props: {
       ...props,
       children: children.map((child) => {
@@ -21,6 +22,7 @@ export function createElement(
 function createTextElement(text: string): VDOM {
   return {
     type: ElementType.TEXT_ELEMENT,
+    tag: "p",
     props: {
       nodeValue: text,
       children: [],
