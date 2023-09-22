@@ -12,16 +12,25 @@
   <script src="../dist/bundle.js"></script>
 
   <script>
+    // function App(props) {
+    //   return <h1>Hi {props.name}</h1>;
+    // }
+
     const container = document.getElementById("root");
-    MReact.render(
-      MReact.createElement(
-        "div",
-        { style: "width: 100px; height: 100px" },
-        "233",
-        233,
-        MReact.createElement("div", null, 2)
-      ),
-      container
+    function App(props) {
+      return MReact.createElement("h1", null, "Hi " + props.name, vdoms);
+    }
+
+    const vdoms = MReact.createElement(
+      "div",
+      { style: "width: 100px; height: 100px" },
+      "233",
+      MReact.createElement("div", null, 2)
     );
+    const element = MReact.createElement(App, { name: "foo" });
+
+    console.log(element)
+    console.log(vdoms)
+    MReact.render(element, container);
   </script>
 </html>
