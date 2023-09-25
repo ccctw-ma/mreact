@@ -1,10 +1,5 @@
 export enum ElementType {
-  TEXT_ELEMENT = "TEXT_ELEMENT",
-  FUNCTION_ELEMENT = "FUNCTION_ELEMENT",
-  ELEMENT = "ELEMENT",
-}
-
-export enum WorkTag {
+  NONE = "NONE",
   TEXT_ELEMENT = "TEXT_ELEMENT",
   FUNCTION_ELEMENT = "FUNCTION_ELEMENT",
   ELEMENT = "ELEMENT",
@@ -17,34 +12,41 @@ export enum Effects {
   DELETION = "DELETION",
 }
 
+export type WithNone<T> = T | null | undefined;
+
 export type HTMLTags = keyof HTMLElementTagNameMap;
 
 export interface Props {
   [x: string]: any;
 }
 
-
-
 export interface VDOM {
   $$typeof: symbol;
-  $props: Props, // 针对不对情况放置一些字段
-  type: ElementType;
-  key: WithNone<string>;
+  $props: Props; // 针对不同情况放置一些字段
+  type: ElementType; // 是什么类型的节点
+  key: WithNone<string>; // 唯一的标识符
   ref: any;
   props: Props; // 这些是可以直接挂载到 dom 上的属性
+  children: Array<VDOM>;
 }
 
 export interface Fiber {
+  // Instance
   type: ElementType;
-  tag?: HTMLTags;
+  key: any;
+  vDom: WithNone<VDOM>;
   dom: WithNone<Node>;
+  props: Props; // 对应的就是挂载到dom上的属性
+
+  // Fiber
   child: WithNone<Fiber>;
   parent: WithNone<Fiber>;
   sibling: WithNone<Fiber>;
   alternate: WithNone<Fiber>;
-  props: Props;
-  children: Array<VDOM>;
+
+  // Effects
+  flag: Effects;
+
+  // other
   [x: string]: any;
 }
-
-export type WithNone<T> = T | null | undefined;

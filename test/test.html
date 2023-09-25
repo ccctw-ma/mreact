@@ -13,24 +13,34 @@
 
   <script>
     // function App(props) {
-    //   return <h1>Hi {props.name}</h1>;
+    //   return (
+    //     <div>
+    //       Hi {props.name}
+    //       <div style="width: 100px; height: 100px; background: red">
+    //         233
+    //         <div>2</div>
+    //       </div>
+    //     </div>
+    //   );
     // }
 
     const container = document.getElementById("root");
     function App(props) {
-      return MReact.createElement("h1", null, "Hi " + props.name, vdoms);
+      return MReact.createElement("div", null, "Hi " + props.name, vdoms);
     }
 
     const vdoms = MReact.createElement(
       "div",
-      { style: "width: 100px; height: 100px" },
+      { style: "width: 100px; height: 100px; background: pink" },
       "233",
-      MReact.createElement("div", null, 2)
+      234,
+      MReact.createElement("div", null, 2),
+      MReact.createElement("h2", null, "Hello MReact")
     );
-    const element = MReact.createElement(App, { name: "foo" });
+    const element = MReact.createElement(App, { name: "this world" });
 
-    console.log(element)
-    console.log(vdoms)
+    console.log(element);
+    console.log(vdoms);
     MReact.render(element, container);
   </script>
 </html>

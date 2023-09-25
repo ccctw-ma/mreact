@@ -1,7 +1,7 @@
-import { ElementType, HTMLTags, Props, VDOM, WithNone } from "./types";
+import { MReactElement } from "./Fiber";
+import { ElementType, HTMLTags, VDOM } from "./types";
 import { isFunctionComponent } from "./utils";
 
-const REACT_ELEMENT_TYPE = Symbol.for("MReact");
 
 export function createElement(
   tag: HTMLTags | Function,
@@ -18,13 +18,13 @@ export function createElement(
       ref,
       {
         ...props,
-        children: children.map((child) => {
-          return typeof child === "object" ? child : createTextElement(child);
-        }),
       },
       {
         fn: tag,
-      }
+      },
+      children.map((child) => {
+        return typeof child === "object" ? child : createTextElement(child);
+      })
     );
   } else {
     return MReactElement(
@@ -33,13 +33,13 @@ export function createElement(
       ref,
       {
         ...props,
-        children: children.map((child) => {
-          return typeof child === "object" ? child : createTextElement(child);
-        }),
       },
       {
         tag,
-      }
+      },
+      children.map((child) => {
+        return typeof child === "object" ? child : createTextElement(child);
+      })
     );
   }
 }
@@ -49,25 +49,10 @@ function createTextElement(text: string): VDOM {
     ElementType.TEXT_ELEMENT,
     null,
     null,
-    { nodeValue: text, children: [] },
-    {}
+    { nodeValue: text },
+    {},
+    []
   );
 }
 
-function MReactElement(
-  type: ElementType,
-  key: WithNone<string>,
-  ref: any,
-  props: Props,
-  $props: Props
-): VDOM {
-  const vDOM: VDOM = {
-    $$typeof: REACT_ELEMENT_TYPE,
-    $props,
-    type,
-    key,
-    ref,
-    props,
-  };
-  return vDOM;
-}
+

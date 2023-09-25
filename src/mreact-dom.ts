@@ -1,3 +1,4 @@
+import { MReactElement, createFiberNode } from "./Fiber";
 import { Effects, ElementType, Fiber, VDOM, WithNone } from "./types";
 import { createDom, isProperty, updateDom } from "./utils";
 
@@ -14,6 +15,7 @@ function workLoop(deadline: IdleDeadline) {
   }
 
   if (!nextUnitWork && root) {
+    console.log(root);
     commitRoot();
   }
   requestIdleCallback(workLoop);
@@ -32,12 +34,12 @@ function commitWork(fiber: WithNone<Fiber>) {
   while (!domParentFiber?.dom) {
     domParentFiber = domParentFiber?.parent;
   }
-  const domParent = fiber.parent?.dom;
-  if (fiber.effectTag === Effects.PLACEMENT && fiber.dom != null) {
+  const domParent = domParentFiber.dom;
+  if (fiber.flag === Effects.PLACEMENT && fiber.dom != null) {
     domParent?.appendChild(fiber.dom);
-  } else if (fiber.effectTag === Effects.DELETION) {
+  } else if (fiber.flag === Effects.DELETION) {
     commitDeletion(fiber, domParent);
-  } else if (fiber.effectTag === Effects.UPDATE && fiber.dom != null) {
+  } else if (fiber.flag === Effects.UPDATE && fiber.dom != null) {
     updateDom(fiber.dom, fiber.alternate!.props, fiber.props);
   }
   commitWork(fiber.child);
@@ -73,7 +75,7 @@ function performUnitOfWork(fiber: Fiber) {
 }
 
 function updateFunctionComponent(fiber: Fiber) {
-  const children = [fiber.fn(fiber.props)];
+  const children = [fiber.vDom?.$props.fn(fiber.props)];
   reconcileChildren(fiber, children);
 }
 
@@ -81,7 +83,7 @@ function updateHostComponent(fiber: Fiber) {
   if (!fiber.dom) {
     fiber.dom = createDom(fiber);
   }
-  const elements = fiber.children;
+  const elements = fiber.vDom!.children;
   reconcileChildren(fiber, elements);
 }
 
@@ -91,44 +93,40 @@ function reconcileChildren(fiber: Fiber, elements: Array<VDOM>) {
   let prevSibling: WithNone<Fiber> = null;
   while (index < elements.length || oldFiber != null) {
     const element = elements[index];
-    let newFiber: WithNone<Fiber> = null;
-    const sameType = oldFiber && element && element.tag === oldFiber.tag;
+    let newFiber = createFiberNode();
+    const sameType =
+      oldFiber && element && element.props.tag === oldFiber.props.tag;
 
     if (sameType) {
-      newFiber = {
-        type: oldFiber!.type,
-        tag: oldFiber!.tag,
-        dom: oldFiber!.dom,
-        fn: oldFiber!.fn,
-        parent: fiber,
-        child: null,
-        sibling: null,
-        alternate: null,
-        props: element.props,
-        effectTag: Effects.UPDATE,
-        children: [],
-      };
+      newFiber.type = oldFiber!.type;
+      newFiber.key = oldFiber!.key;
+      newFiber.dom = oldFiber!.dom;
+      newFiber.parent = oldFiber!.parent;
+      newFiber.props = element.props;
+      newFiber.vDom = element;
+      newFiber.flag = Effects.UPDATE;
     }
 
     if (element && !sameType) {
-      newFiber = {
-        type: element.type,
-        tag: element.tag!,
-        props: element.props,
-        fn: element.fn,
-        dom: null,
-        child: null,
-        parent: fiber,
-        sibling: null,
-        alternate: null,
-        effectTag: Effects.PLACEMENT,
-        children: [],
-      };
+      newFiber.type = element.type;
+      newFiber.key = element.key;
+      newFiber.props = element.props;
+      newFiber.parent = fiber;
+      newFiber.vDom = element;
+      newFiber.flag = Effects.PLACEMENT;
+
+      newFiber.tag = element.$props.tag;
     }
 
     if (oldFiber && !sameType) {
-      (oldFiber.effectTag = Effects.DELETION), deletions.push(oldFiber);
+      oldFiber.flag = Effects.DELETION;
+      deletions.push(oldFiber);
     }
+
+    if (oldFiber) {
+      oldFiber = oldFiber.sibling;
+    }
+
     if (index === 0) {
       fiber.child = newFiber;
     } else {
@@ -145,16 +143,12 @@ export function render(element: VDOM, container: HTMLElement) {
   }
 
   requestIdleCallback(workLoop);
-  root = {
-    type: ElementType.ELEMENT,
-    dom: container,
-    child: null,
-    parent: null,
-    sibling: null,
-    alternate: preRoot,
-    props: {},
-    children: [element],
-  };
+
+  root = createFiberNode(ElementType.ELEMENT);
+  root.vDom = MReactElement(ElementType.ELEMENT, null, null, {}, {}, [element]);
+  root.dom = container;
+  root.alternate = preRoot;
+
   deletions = [];
   nextUnitWork = root;
 }
