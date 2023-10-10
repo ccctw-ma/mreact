@@ -25,8 +25,27 @@
     // }
 
     const container = document.getElementById("root");
+
     function App(props) {
-      return MReact.createElement("div", null, "Hi " + props.name, vdoms);
+      const [a, sa] = MReact.useState(2);
+
+      return MReact.createElement(
+        "div",
+        null,
+        MReact.createElement(
+          "button",
+          {
+            onClick: () => {
+              console.log("Hello world");
+              sa((c) => c + 1);
+            },
+          },
+          "Count ",
+          a
+        ),
+        MReact.createElement("h2", null, a)
+        // vdoms
+      );
     }
 
     const vdoms = MReact.createElement(

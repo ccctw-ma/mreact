@@ -46,6 +46,7 @@ export interface Fiber {
 
   // Effects
   flag: Effects;
+  memoizedHook: any; // 记录挂载到该 Fiber 的 hook 链表头
 
   // other
   [x: string]: any;

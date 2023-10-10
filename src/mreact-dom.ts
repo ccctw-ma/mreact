@@ -2,10 +2,12 @@ import { MReactElement, createFiberNode } from "./Fiber";
 import { Effects, ElementType, Fiber, VDOM, WithNone } from "./types";
 import { createDom, isProperty, updateDom } from "./utils";
 
-let nextUnitWork: WithNone<Fiber> = null;
+let nextUnitWork: WithNone<Fiber> = null; // work unit
 let preRoot: WithNone<Fiber> = null; // last fiber tree wo commited to the DOM
 let root: WithNone<Fiber> = null; // root of fiber tree
 let deletions: Array<Fiber> = [];
+let workFiber: WithNone<Fiber> = null; // current working fiber
+let workInProgressHook: any = null;
 
 function workLoop(deadline: IdleDeadline) {
   let shouldYield = false;
@@ -35,6 +37,7 @@ function commitWork(fiber: WithNone<Fiber>) {
     domParentFiber = domParentFiber?.parent;
   }
   const domParent = domParentFiber.dom;
+  fiber.isMounted = true;
   if (fiber.flag === Effects.PLACEMENT && fiber.dom != null) {
     domParent?.appendChild(fiber.dom);
   } else if (fiber.flag === Effects.DELETION) {
@@ -75,8 +78,82 @@ function performUnitOfWork(fiber: Fiber) {
 }
 
 function updateFunctionComponent(fiber: Fiber) {
+  workFiber = fiber;
   const children = [fiber.vDom?.$props.fn(fiber.props)];
   reconcileChildren(fiber, children);
+}
+
+export function useState(init: any) {
+  let state = typeof init === "function" ? init() : init;
+  let hook: any;
+  // 如果有 alternate 那么证明就不是初始化的
+  // 反之就是需要初始化的了
+  if (workFiber!.isMounted) {
+    hook = workInProgressHook;
+    let baseState = hook.memoizedState;
+    if (hook.queue.pending) {
+      let fisrtAction = hook.queue.pending.next;
+      do {
+        baseState =
+          typeof fisrtAction.action === "function"
+            ? fisrtAction.action(baseState)
+            : fisrtAction.action;
+        fisrtAction = fisrtAction.next;
+      } while (fisrtAction !== hook.queue.pending);
+      hook.memoizedState = baseState;
+      hook.queue.pending = null;
+    }
+  } else {
+    hook = {
+      type: "useState",
+      memoizedState: state,
+      next: null,
+      queue: {
+        pending: null, // 这个始终指向 queue 的最后一个 update 对象
+      },
+    };
+    if (!workFiber?.memoizedHook) {
+      workFiber!.memoizedHook = workInProgressHook = hook;
+    }
+    workInProgressHook = workInProgressHook.next = hook;
+  }
+  return [hook.memoizedState, dispatchAction.bind(null, workFiber, hook)];
+}
+
+function dispatchAction(currentRenderingFiber, hook, action) {
+  // 更新操作
+  let update: any = {
+    action,
+    next: null,
+  };
+  // queue.pending = u0 ---> u0
+  //                 ^       |
+  //                 |       |
+  //                 ---------
+  // queue.pending = u1 ---> u0
+  //                 ^       |
+  //                 |       |
+  //                 ---------
+  // queue.pending = u2 ---> u0
+  //                 ^       |
+  //                 |       |
+  //                 -- u1 <--
+  // 之所以这样操作是因为， 这样可以在O(1) 的时间完成队尾的更新操作的插入
+  // 并且可以使用 O(1) 的时间获取到队首，妙呀!!!
+  if (!hook.queue.pending) {
+    // 第一次使用setXXX， 形成一个环形闭环
+    update.next = update;
+  } else {
+    update.next = hook.queue.pending.next;
+    hook.queue.pending.next = update;
+  }
+  // queue.pending.next 永远指向第一插入的update节点
+  hook.queue.pending = update;
+
+  // todo 开始调度更新
+  root = currentRenderingFiber;
+  root!.alternate = currentRenderingFiber;
+  nextUnitWork = root;
 }
 
 function updateHostComponent(fiber: Fiber) {
@@ -87,6 +164,7 @@ function updateHostComponent(fiber: Fiber) {
   reconcileChildren(fiber, elements);
 }
 
+//todo: 这里的算法需要优化一下
 function reconcileChildren(fiber: Fiber, elements: Array<VDOM>) {
   let index = 0;
   let oldFiber = fiber.alternate && fiber.alternate.child;
@@ -102,6 +180,7 @@ function reconcileChildren(fiber: Fiber, elements: Array<VDOM>) {
       newFiber.key = oldFiber!.key;
       newFiber.dom = oldFiber!.dom;
       newFiber.parent = oldFiber!.parent;
+      newFiber.alternate = oldFiber;
       newFiber.props = element.props;
       newFiber.vDom = element;
       newFiber.flag = Effects.UPDATE;
@@ -112,6 +191,7 @@ function reconcileChildren(fiber: Fiber, elements: Array<VDOM>) {
       newFiber.key = element.key;
       newFiber.props = element.props;
       newFiber.parent = fiber;
+      newFiber.alternate = null;
       newFiber.vDom = element;
       newFiber.flag = Effects.PLACEMENT;
 

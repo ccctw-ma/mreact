@@ -17,6 +17,7 @@ function FiberNode(this: Fiber) {
 
   //Effects
   this.flag = Effects.NOFLAG;
+  this.isMounted = false;
 }
 
 export function createFiberNode(type?: ElementType): Fiber {
@@ -24,7 +25,6 @@ export function createFiberNode(type?: ElementType): Fiber {
   type && (res.type = type);
   return res;
 }
-
 
 export function MReactElement(
   type: ElementType,

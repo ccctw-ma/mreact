@@ -1,8 +1,9 @@
 import { createElement } from "./mreact";
-import { render } from "./mreact-dom";
+import { render, useState } from "./mreact-dom";
 const MReact = {
   createElement,
   render,
+  useState
 };
 
 export default MReact;
